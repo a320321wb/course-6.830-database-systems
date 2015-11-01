@@ -1,10 +1,17 @@
 package simpledb;
 
+import java.io.IOException;
+
 /**
  * The delete operator.  Delete reads tuples from its child operator and
  * removes them from the table they belong to.
  */
 public class Delete extends Operator {
+
+    private TransactionId transactionId;
+    private DbIterator child;
+    private int tableId;
+    private TupleDesc tupleDesc;
 
     /**
      * Constructor specifying the transaction that this delete belongs to as
@@ -13,24 +20,25 @@ public class Delete extends Operator {
      * @param child The child operator from which to read tuples for deletion
      */
     public Delete(TransactionId t, DbIterator child) {
-        // some code goes here
+        this.transactionId = t;
+        this.child = child;
+        this.tupleDesc = new TupleDesc(new Type[] {Type.INT_TYPE});
     }
 
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return tupleDesc;
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child.open();
     }
 
     public void close() {
-        // some code goes here
+        child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child.rewind();
     }
 
     /**
@@ -42,7 +50,18 @@ public class Delete extends Operator {
      * @see BufferPool#deleteTuple
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        int numDeletes = 0;
+        while (child.hasNext()) {
+            Tuple tuple = child.next();
+            try {
+                Database.getBufferPool().deleteTuple(transactionId, tuple);
+                ++numDeletes;
+            } catch (DbException e) {
+                e.printStackTrace();
+            }
+        }
+        Tuple ret = new Tuple(getTupleDesc());
+        ret.setField(0, new IntField(numDeletes));
+        return ret;
     }
 }

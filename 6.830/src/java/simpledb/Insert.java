@@ -1,4 +1,5 @@
 package simpledb;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -6,6 +7,11 @@ import java.util.*;
  * the tableid specified in the constructor
  */
 public class Insert extends Operator {
+
+    private TransactionId transactionId;
+    private DbIterator child;
+    private int tableId;
+    private TupleDesc tupleDesc;
 
     /**
      * Constructor.
@@ -16,24 +22,29 @@ public class Insert extends Operator {
      */
     public Insert(TransactionId t, DbIterator child, int tableid)
         throws DbException {
-        // some code goes here
+        this.transactionId = t;
+        this.child = child;
+        this.tableId = tableid;
+        this.tupleDesc = new TupleDesc(new Type[] {Type.INT_TYPE});
+        if (!Database.getCatalog().getTupleDesc(tableid).equals(child.getTupleDesc())) {
+            throw new DbException("tupleDesc of child differs from table into which we are to insert");
+        }
     }
 
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return tupleDesc;
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child.open();
     }
 
     public void close() {
-        // some code goes here
+        child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child.rewind();
     }
 
     /**
@@ -51,7 +62,18 @@ public class Insert extends Operator {
      */
     protected Tuple fetchNext()
             throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        int numInserts = 0;
+        while (child.hasNext()) {
+            Tuple tuple = child.next();
+            try {
+                Database.getBufferPool().insertTuple(transactionId, tableId, tuple);
+                ++numInserts;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        Tuple ret = new Tuple(getTupleDesc());
+        ret.setField(0, new IntField(numInserts));
+        return ret;
     }
 }
