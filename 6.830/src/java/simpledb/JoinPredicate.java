@@ -8,7 +8,7 @@ public class JoinPredicate {
 
     private int fieldId1;
     private int fieldId2;
-    private Predicate.Op
+    private Predicate.Op op;
 
     /**
      * Constructor -- create a new predicate over two fields of two tuples.
@@ -21,7 +21,9 @@ public class JoinPredicate {
      * @see Predicate
      */
     public JoinPredicate(int field1, Predicate.Op op, int field2) {
-        // some code goes here
+        this.fieldId1 = field1;
+        this.fieldId2 = field2;
+        this.op = op;
     }
 
     /**
@@ -30,7 +32,6 @@ public class JoinPredicate {
      * @return true if the tuples satisfy the predicate.
      */
     public boolean filter(Tuple t1, Tuple t2) {
-        // some code goes here
-        return false;
+        return t1.getField(fieldId1).compare(this.op, t2.getField(fieldId2));
     }
 }
