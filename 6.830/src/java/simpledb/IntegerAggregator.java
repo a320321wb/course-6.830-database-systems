@@ -1,9 +1,21 @@
 package simpledb;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
 /**
  * Knows how to compute some aggregate over a set of IntFields.
  */
 public class IntegerAggregator implements Aggregator {
+
+    private int gbField;
+    private Type gbFieldType;
+    private int aField;
+    private Op what;
+    private TupleDesc tupleDesc;
+    private HashMap<Field, Integer> aggregator;
+    private HashMap<Field, Integer> numTuples;
 
     /**
      * Aggregate constructor
@@ -14,7 +26,17 @@ public class IntegerAggregator implements Aggregator {
      */
 
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
-        // some code goes here
+        this.gbField = gbfield;
+        this.gbFieldType = gbfieldtype;
+        this.aField = afield;
+        this.what = what;
+        if (gbfield == NO_GROUPING) {
+            this.tupleDesc = new TupleDesc(new Type[] {Type.INT_TYPE});
+        } else {
+            this.tupleDesc = new TupleDesc(new Type[] {gbfieldtype, Type.INT_TYPE});
+        }
+        this.aggregator = new HashMap<Field, Integer>();
+        this.numTuples = new HashMap<Field, Integer>();
     }
 
     /**
@@ -22,8 +44,113 @@ public class IntegerAggregator implements Aggregator {
      * @param tup the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        // some code goes here
+        int value = ((IntField)tup.getField(aField)).getValue();
+        Field field = gbField == NO_GROUPING?null:tup.getField(gbField);
+        if (numTuples.containsKey(field)) {
+            numTuples.put(field, numTuples.get(field) + 1);
+        } else {
+            numTuples.put(field, 1);
+        }
+
+        switch (what) {
+            case MIN:
+                if (aggregator.containsKey(field)) {
+                    aggregator.put(field, Math.min(aggregator.get(field), value));
+                } else {
+                    aggregator.put(field, value);
+                }
+                break;
+            case MAX:
+                if (aggregator.containsKey(field)) {
+                    aggregator.put(field, Math.max(aggregator.get(field), value));
+                } else {
+                    aggregator.put(field, value);
+                }
+                break;
+            case AVG:
+            case SUM:
+                if (aggregator.containsKey(field)) {
+                    aggregator.put(field, aggregator.get(field) + value);
+                } else {
+                    aggregator.put(field, value);
+                }
+                break;
+            case COUNT:
+            default:
+                break;
+        }
     }
+
+    public static class IntegerAggregatorIterator extends Operator {
+
+        private static final long serialVersionUID = 1L;
+
+        private IntegerAggregator integerAggregator;
+        private Iterator<Field> iterator;
+
+        IntegerAggregatorIterator(IntegerAggregator integerAggregator) {
+            this.integerAggregator = integerAggregator;
+            this.iterator = integerAggregator.numTuples.keySet().iterator();
+        }
+
+        public TupleDesc getTupleDesc() {
+            return integerAggregator.tupleDesc;
+        }
+
+        public void open()
+                throws DbException, NoSuchElementException, TransactionAbortedException {
+            iterator = integerAggregator.numTuples.keySet().iterator();
+        }
+
+        public void close() {
+            iterator = null;
+        }
+
+        public void rewind() throws DbException, TransactionAbortedException {
+            iterator = integerAggregator.numTuples.keySet().iterator();
+        }
+
+        protected Tuple fetchNext() throws TransactionAbortedException, DbException {
+            if (iterator == null) {
+                return null;
+            }
+            while (iterator.hasNext()) {
+                Field field = iterator.next();
+                int value = 0;
+                if (integerAggregator.aggregator.containsKey(field)) {
+                    value = integerAggregator.aggregator.get(field);
+                } else {
+                    value = integerAggregator.numTuples.get(field);
+                }
+                int result = 0;
+                switch (integerAggregator.what) {
+                    case MIN:
+                    case MAX:
+                    case SUM:
+                    case COUNT:
+                        result = value;
+                        break;
+                    case AVG:
+                        result = value / integerAggregator.numTuples.get(field);
+                        break;
+                    default:
+                        break;
+                }
+
+                Tuple tuple = new Tuple(getTupleDesc());
+                if (integerAggregator.gbField == NO_GROUPING) {
+                    tuple.setField(0, new IntField(result));
+                } else {
+                    tuple.setField(0, field);
+                    tuple.setField(1, new IntField(result));
+                }
+                return tuple;
+            }
+            return null;
+        }
+    }
+
+
 
     /**
      * Create a DbIterator over group aggregate results.
@@ -34,8 +161,7 @@ public class IntegerAggregator implements Aggregator {
      *   aggregate specified in the constructor.
      */
     public DbIterator iterator() {
-        // some code goes here
-        throw new UnsupportedOperationException("please implement me for lab2");
+        return new IntegerAggregatorIterator(this);
     }
 
 }

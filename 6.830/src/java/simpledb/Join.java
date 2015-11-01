@@ -50,7 +50,7 @@ public class Join extends Operator {
     public void rewind() throws DbException, TransactionAbortedException {
         child1.rewind();
         child2.rewind();
-        tuple1 = null;  
+        tuple1 = null;
     }
 
     /**
