@@ -86,9 +86,9 @@ public class HeapFile implements DbFile {
         // some code goes here
         int PAGE_SIZE = Database.getBufferPool().getPageSize();
         try {
-            RandomAccessFile writer = new RandomAccessFile(file, "w");
+            RandomAccessFile writer = new RandomAccessFile(file, "rw");
             long offset = 1L * PAGE_SIZE * page.getId().pageNumber();
-            reader.seek(offset);
+            writer.seek(offset);
             byte[] bytes = page.getPageData();
             writer.write(bytes);
             writer.close();
