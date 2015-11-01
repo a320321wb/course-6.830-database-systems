@@ -131,17 +131,12 @@ public class TupleDesc implements Serializable {
      *             if no field with a matching name is found.
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
-        int index = -1;
         for (int i = 0; i < TDItemList.size(); ++i) {
             if (getFieldName(i).equals(name)) {
-                index = i;
-                break;
+                return i;
             }
         }
-        if (index == -1) {
-            throw new NoSuchElementException();
-        }
-        return index;
+        throw new NoSuchElementException();
     }
 
     /**
