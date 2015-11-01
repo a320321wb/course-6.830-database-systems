@@ -61,7 +61,7 @@ public class HeapPageId implements PageId {
             return false;
         }
 
-        if (tableId == that.tableId && pgNo == that.pgNo) {
+        if (getTableId() == that.getTableId() && pageNumber() == that.pageNumber()) {
             return true;
         } else {
             return false;
