@@ -84,7 +84,17 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
         // some code goes here
-        // not necessary for lab1
+        int PAGE_SIZE = Database.getBufferPool().getPageSize();
+        try {
+            RandomAccessFile writer = new RandomAccessFile(file, "w");
+            long offset = 1L * PAGE_SIZE * page.getId().pageNumber();
+            reader.seek(offset);
+            byte[] bytes = page.getPageData();
+            writer.write(bytes);
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -99,17 +109,29 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+        ArrayList<Page> ret = new ArrayList<Page>();
+        for (int i = 0; i < numPages(); ++i) {
+            HeapPage heapPage = (HeapPage)Database.getBufferPool().getPage(tid, new HeapPageId(getId(), i), null);
+            if (heapPage.getNumEmptySlots() > 0) {
+                heapPage.insertTuple(t);
+                ret.add(heapPage);
+                return ret;
+            }
+        }
+
+        HeapPage heapPage = new HeapPage(new HeapPageId(getId(), numPages()), HeapPage.createEmptyPageData());
+        heapPage.insertTuple(t);
+        writePage(heapPage);
+        ret.add(heapPage);
+        return ret;
     }
 
     // see DbFile.java for javadocs
     public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+        HeapPage heapPage = (HeapPage)Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), null);
+        heapPage.deleteTuple(t);
+        return heapPage;
     }
 
     public static class HeapFileIterator implements DbFileIterator {

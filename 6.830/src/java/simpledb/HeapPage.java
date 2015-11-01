@@ -244,7 +244,7 @@ public class HeapPage implements Page {
         }
         for (int i = 0; i < tuples.length; ++i) {
             if (tuples[i].getRecordId().equals(t.getRecordId())) {
-                if (isSlotUsed(i)) {
+                if (!isSlotUsed(i)) {
                     throw new DbException("tuple slot is already empty");
                 } else {
                     markSlotUsed(i, false);
