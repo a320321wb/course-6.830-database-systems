@@ -239,8 +239,21 @@ public class HeapPage implements Page {
      * @param t The tuple to delete
      */
     public void deleteTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        if (t.getRecordId().getPageId().equals(pid) == false) {
+            throw new DbException("tuple is not on this page.");
+        }
+        for (int i = 0; i < tuples.length; ++i) {
+            if (tuples[i].getRecordId().equals(t.getRecordId())) {
+                if (isSlotUsed(i)) {
+                    throw new DbException("tuple slot is already empty");
+                } else {
+                    markSlotUsed(i, false);
+                }
+                return ;
+            }
+        }
+
+        throw new DbException("tuple is not on this page.");
     }
 
     /**
@@ -251,8 +264,21 @@ public class HeapPage implements Page {
      * @param t The tuple to add.
      */
     public void insertTuple(Tuple t) throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        if (!t.getTupleDesc().equals(td)) {
+            throw new DbException("tupledesc is mismatch.");
+        }
+        if (getNumEmptySlots() == 0) {
+            throw new DbException("the page is full (no empty slots).");
+        }
+        for (int i = 0; i < tuples.length; ++i) {
+            if (!isSlotUsed(i)) {
+                markSlotUsed(i, true);
+                t.setRecordId(new RecordId(getId(), i));
+                tuples[i] = t;
+                return;
+            }
+        }
+        throw new DbException("the page is full (no empty slots).");
     }
 
     /**
