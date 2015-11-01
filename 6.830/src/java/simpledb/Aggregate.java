@@ -9,6 +9,12 @@ import java.util.*;
  */
 public class Aggregate extends Operator {
 
+    private DbIterator child;
+    private int aField;
+    private int gField;
+    private Aggregator.Op aop;
+    private Aggregator aggregator;
+
     /**
      * Constructor.  
      *
@@ -22,7 +28,30 @@ public class Aggregate extends Operator {
      * @param aop The aggregation operator to use
      */
     public Aggregate(DbIterator child, int afield, int gfield, Aggregator.Op aop) {
-        // some code goes here
+        this.aField = afield;
+        this.gField = gfield;
+        this.aop = aop;
+
+        Type gFieldType = null;
+        if (gfield != -1) {
+            gFieldType = child.getTupleDesc().getFieldType(gfield);
+        }
+        if (child.getTupleDesc().getFieldType(afield) == Type.INT_TYPE) {
+            this.aggregator = new IntegerAggregator(gfield, gFieldType, afield, aop);
+        } else {
+            this.aggregator = new StringAggregator(gfield, gFieldType, afield, aop);
+        }
+
+        try {
+            child.open();
+            while (child.hasNext()) {
+                this.aggregator.mergeTupleIntoGroup(child.next());
+            }
+            child.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        this.child = this.aggregator.iterator();
     }
 
     public static String nameOfAggregatorOp(Aggregator.Op aop) {
@@ -43,7 +72,7 @@ public class Aggregate extends Operator {
 
     public void open()
         throws NoSuchElementException, DbException, TransactionAbortedException {
-        // some code goes here
+        child.open();
     }
 
     /**
@@ -55,12 +84,15 @@ public class Aggregate extends Operator {
      * Should return null if there are no more tuples.
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        if (child.hasNext()) {
+            return child.next();
+        } else {
+            return null;
+        }
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child.rewind();
     }
 
     /**
@@ -75,11 +107,10 @@ public class Aggregate extends Operator {
      * of the child iterator. 
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return child.getTupleDesc();
     }
 
     public void close() {
-        // some code goes here
+        child.close();
     }
 }
