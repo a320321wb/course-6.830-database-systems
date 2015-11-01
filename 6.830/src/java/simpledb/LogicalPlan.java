@@ -225,7 +225,7 @@ public  class LogicalPlan {
         while (tableIt.hasNext()) {
             LogicalScanNode table = tableIt.next();
             try {
-                TupleDesc td = Database.getCatalog().getDbFile(table.t).getTupleDesc();
+                TupleDesc td = Database.getCatalog().getDatabaseFile(table.t).getTupleDesc();
                 int id = td.fieldNameToIndex(name);
                 if (tableName == null) {
                     tableName = table.alias;
@@ -279,7 +279,7 @@ public  class LogicalPlan {
             LogicalScanNode table = tableIt.next();
             SeqScan ss = null;
             try {
-                 ss = new SeqScan(t, Database.getCatalog().getDbFile(table.t).getId(), table.alias);
+                 ss = new SeqScan(t, Database.getCatalog().getDatabaseFile(table.t).getId(), table.alias);
             } catch (NoSuchElementException e) {
                 throw new ParsingException("Unknown table " + table.t);
             }
