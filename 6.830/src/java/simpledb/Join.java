@@ -6,6 +6,12 @@ import java.util.*;
  */
 public class Join extends Operator {
 
+    private JoinPredicate predicate;
+    private DbIterator child1;
+    private DbIterator child2;
+    private TupleDesc tupleDesc;
+    private Tuple tuple1;
+
     /**
      * Constructor.  Accepts to children to join and the predicate
      * to join them on
@@ -15,28 +21,36 @@ public class Join extends Operator {
      * @param child2 Iterator for the right(inner) relation to join
      */
     public Join(JoinPredicate p, DbIterator child1, DbIterator child2) {
-        // some code goes here
+        this.predicate = p;
+        this.child1 = child1;
+        this.child2 = child2;
+        this.tupleDesc = TupleDesc.merge(child1.getTupleDesc(), child2.getTupleDesc());
+        this.tuple1 = null;
     }
 
     /**
      * @see simpledb.TupleDesc#merge(TupleDesc, TupleDesc) for possible implementation logic.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return tupleDesc;
     }
 
     public void open()
         throws DbException, NoSuchElementException, TransactionAbortedException {
-        // some code goes here
+        child1.open();
+        child2.open();
     }
 
     public void close() {
-        // some code goes here
+        super.close();
+        child1.close();
+        child2.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child1.rewind();
+        child2.rewind();
+        tuple1 = null;
     }
 
     /**
@@ -59,7 +73,26 @@ public class Join extends Operator {
      * @see JoinPredicate#filter
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // some code goes here
+        while (tuple1 != null || child1.hasNext()) {
+            if (tuple1 == null) {
+                tuple1 = child1.next();
+                child2.rewind();
+            }
+            while (child2.hasNext()) {
+                Tuple tuple2 = child2.next();
+                if (predicate.filter(tuple1, tuple2)) {
+                    Tuple tuple = new Tuple(tupleDesc);
+                    for (int i = 0; i < tuple1.getTupleDesc().numFields(); ++i) {
+                        tuple.setField(i, tuple1.getField(i));
+                    }
+                    for (int i = 0; i < tuple2.getTupleDesc().numFields(); ++i) {
+                        tuple.setField(i + tuple1.getTupleDesc().numFields(), tuple2.getField(i));
+                    }
+                    return tuple;
+                }
+            }
+            tuple1 = null;
+        }
         return null;
     }
 }
