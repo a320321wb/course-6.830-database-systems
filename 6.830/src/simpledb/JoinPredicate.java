@@ -6,6 +6,10 @@ package simpledb;
  */
 public class JoinPredicate {
 
+    private int fieldId1;
+    private int fieldId2;
+    private Predicate.Op
+
     /**
      * Constructor -- create a new predicate over two fields of two tuples.
      *
