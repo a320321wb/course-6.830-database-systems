@@ -13,6 +13,9 @@ public class Tuple implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private TupleDesc mTupleDesc;
+    private Field[] mFields = null;
+
     /**
      * Create a new tuple with the specified schema (type).
      * 
@@ -21,7 +24,8 @@ public class Tuple implements Serializable {
      *            instance with at least one field.
      */
     public Tuple(TupleDesc td) {
-        // some code goes here
+        mTupleDesc = td;
+        fields() =
     }
 
     /**
