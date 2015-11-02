@@ -12,6 +12,7 @@ public class Insert extends Operator {
     private DbIterator child;
     private int tableId;
     private TupleDesc tupleDesc;
+    private boolean hasInserted;
 
     /**
      * Constructor.
@@ -26,6 +27,7 @@ public class Insert extends Operator {
         this.child = child;
         this.tableId = tableid;
         this.tupleDesc = new TupleDesc(new Type[] {Type.INT_TYPE});
+        this.hasInserted = false;
         if (!Database.getCatalog().getTupleDesc(tableid).equals(child.getTupleDesc())) {
             throw new DbException("tupleDesc of child differs from table into which we are to insert");
         }
@@ -62,6 +64,10 @@ public class Insert extends Operator {
      */
     protected Tuple fetchNext()
             throws TransactionAbortedException, DbException {
+        if (hasInserted) {
+            return null;
+        }
+        hasInserted = true;
         int numInserts = 0;
         while (child.hasNext()) {
             Tuple tuple = child.next();
