@@ -2,6 +2,7 @@ package simpledb;
 
 import javax.xml.crypto.Data;
 import java.io.*;
+import java.sql.DataTruncation;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -67,7 +68,7 @@ public class BufferPool {
         } else {
             Page page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
             if (pageHashMap.size() == PAGE_LIMIT) {
-                throw new simpledb.DbException("BufferPool has too many pages.");
+                evictPage();
             }
             pageHashMap.put(pid, page);
             return page;
@@ -168,9 +169,9 @@ public class BufferPool {
      *     break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
-        // some code goes here
-        // not necessary for lab1
-
+        for (PageId pageId : pageHashMap.keySet()) {
+            flushPage(pageId);
+        }
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -188,8 +189,12 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
-        // some code goes here
-        // not necessary for lab1
+        Page page = pageHashMap.get(pid);
+        if (page.isDirty() != null) {
+            DbFile dbFile = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+            dbFile.writePage(page);
+            page.markDirty(false, null);
+        }
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -205,7 +210,13 @@ public class BufferPool {
      */
     private synchronized  void evictPage() throws DbException {
         // some code goes here
-        // not necessary for lab1
+        PageId pageId = pageHashMap.keySet().iterator().next();
+        try {
+            flushPage(pageId);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        pageHashMap.remove(pageId);
     }
 
 }
