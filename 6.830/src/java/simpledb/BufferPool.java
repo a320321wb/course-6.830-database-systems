@@ -6,6 +6,7 @@ import java.sql.DataTruncation;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -211,7 +212,17 @@ public class BufferPool {
      */
     private synchronized  void evictPage() throws DbException {
         // some code goes here
-        PageId pageId = pageHashMap.keySet().iterator().next();
+        Iterator<PageId> pageIdIterator = pageHashMap.keySet().iterator();
+        PageId pageId = null;
+        while (pageIdIterator.hasNext()) {
+            pageId = pageIdIterator.next();
+            if (pageHashMap.get(pageId).isDirty() == null) {
+                break;
+            }
+        }
+        if (pageId == null || pageHashMap.get(pageId).isDirty() == null) {
+            throw new DbException("All pages in BufferPool are dirty and therefore none can be evicted.");
+        }
         try {
             flushPage(pageId);
         } catch (IOException e) {
