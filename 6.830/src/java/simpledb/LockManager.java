@@ -38,7 +38,7 @@ public class LockManager {
     }
 
     public boolean acquireLock(TransactionId transactionId, PageId pageId, Permissions permissions) {
-        if (hasPermissions(transactionId, pageId, permissions) {
+        if (hasPermissions(transactionId, pageId, permissions)) {
             return true;
         }
         Object lock = getLock(pageId);
@@ -68,5 +68,32 @@ public class LockManager {
                 }
             }
         }
+    }
+
+    private void releaseLock(TransactionId transactionId, PageId pageId) {
+        Object lock = getLock(pageId);
+        synchronized (lock) {
+            exclusiveLocks.remove(pageId);
+            if (sharedLocks.containsKey(pageId)) {
+                sharedLocks.get(pageId).remove(transactionId);
+            }
+        }
+    }
+
+    public void releasePage(TransactionId transactionId, PageId pageId) {
+        releaseLock(transactionId, pageId);
+    }
+
+    public boolean holdsLock(TransactionId transactionId, PageId pageId) {
+        Object lock = getLock(pageId);
+        synchronized (lock) {
+            if (exclusiveLocks.containsKey(pageId) && exclusiveLocks.get(pageId).equals(transactionId)) {
+                return true;
+            }
+            if (sharedLocks.containsKey(pageId) && sharedLocks.get(pageId).contains(transactionId)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
