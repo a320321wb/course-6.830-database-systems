@@ -117,8 +117,24 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid, boolean commit)
         throws IOException {
-        // some code goes here
-        // not necessary for lab1|lab2
+        if (commit) {
+            for (PageId pageId : pageHashMap.keySet()) {
+                Page page = pageHashMap.get(pageId);
+                if (tid.equals(page.isDirty())) {
+                    flushPage(pageId);
+                    page.setBeforeImage();
+                }
+            }
+        } else {
+            for (PageId pageId : pageHashMap.keySet()) {
+                Page page = pageHashMap.get(pageId);
+                if (tid.equals(page.isDirty())) {
+                    pageHashMap.put(pageId, page.getBeforeImage());
+                    page.markDirty(false, null);
+                }
+            }
+        }
+        lockManager.releasePages(tid);
     }
 
     /**
@@ -220,7 +236,7 @@ public class BufferPool {
                 break;
             }
         }
-        if (pageId == null || pageHashMap.get(pageId).isDirty() == null) {
+        if (pageId == null || pageHashMap.get(pageId).isDirty() != null) {
             throw new DbException("All pages in BufferPool are dirty and therefore none can be evicted.");
         }
         try {
