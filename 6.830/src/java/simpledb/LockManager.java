@@ -50,6 +50,9 @@ public class LockManager {
         if (hasPermissions(transactionId, pageId, permissions)) {
             return true;
         }
+        if (transactionId == null) {
+            transactionId = TransactionId.NULL_TRANSACTION_ID;
+        }
         Object lock = getLock(pageId);
         if (permissions == Permissions.READ_ONLY) {
             while (true) {
