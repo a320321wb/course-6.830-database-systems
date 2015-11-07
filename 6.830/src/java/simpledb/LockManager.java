@@ -59,11 +59,12 @@ public class LockManager {
                     ArrayList<TransactionId> lockHolders = new ArrayList<TransactionId>();
                     if (exclusiveLocks.containsKey(pageId)) {
                         lockHolders.add(exclusiveLocks.get(pageId));
-                    } else {
+                    } else if (sharedLocks.containsKey(pageId)) {
                         lockHolders.addAll(sharedLocks.get(pageId));
                     }
                     if (lockHolders.isEmpty() || (lockHolders.size() == 1 && transactionId.equals(lockHolders.iterator().next()))) {
                         exclusiveLocks.put(pageId, transactionId);
+                        return true;
                     }
                 }
             }
