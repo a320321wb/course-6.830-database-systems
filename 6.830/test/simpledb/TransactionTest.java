@@ -1,10 +1,13 @@
 package simpledb;
 
-import java.util.*;
+import static org.junit.Assert.assertEquals;
+
+import java.util.Iterator;
+
+import junit.framework.JUnit4TestAdapter;
+
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import junit.framework.JUnit4TestAdapter;
 
 public class TransactionTest extends TestUtil.CreateHeapFile {
   private PageId p0, p1, p2;
@@ -16,6 +19,7 @@ public class TransactionTest extends TestUtil.CreateHeapFile {
   /**
    * Set up initial resources for each unit test.
    */
+  @Override
   @Before public void setUp() throws Exception {
     super.setUp();
 
@@ -83,7 +87,7 @@ public class TransactionTest extends TestUtil.CreateHeapFile {
 
     boolean found = false;
     while (it.hasNext()) {
-      Tuple tup = (Tuple) it.next();
+      Tuple tup = it.next();
       IntField f0 = (IntField) tup.getField(0);
       IntField f1 = (IntField) tup.getField(1);
 
@@ -93,7 +97,7 @@ public class TransactionTest extends TestUtil.CreateHeapFile {
       }
     }
 
-    assertEquals(commit, found);
+    assertEquals(new Boolean(commit), new Boolean(found));
   }
 
   /**

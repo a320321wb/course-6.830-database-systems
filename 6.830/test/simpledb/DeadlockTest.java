@@ -1,13 +1,16 @@
 package simpledb;
 
-import simpledb.TestUtil.LockGrabber;
-
-import java.util.*;
-import org.junit.Before;
-import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+
+import java.util.Random;
+
 import junit.framework.JUnit4TestAdapter;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import simpledb.TestUtil.LockGrabber;
 
 public class DeadlockTest extends TestUtil.CreateHeapFile {
   private PageId p0, p1, p2;
@@ -23,7 +26,9 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
   /**
    * Set up initial resources for each unit test.
    */
-  @Before public void setUp() throws Exception {
+  @Override
+  @Before
+  public void setUp() throws Exception {
     super.setUp();
 
     // clear all state from the buffer pool
@@ -56,11 +61,10 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
   }
 
   /**
-   * Helper method to clean up the syntax of starting a LockGrabber thread.
-   * The parameters pass through to the LockGrabber constructor.
+   * Helper method to clean up the syntax of starting a LockGrabber thread. The
+   * parameters pass through to the LockGrabber constructor.
    */
-  public TestUtil.LockGrabber startGrabber(TransactionId tid, PageId pid,
-      Permissions perm) {
+  public TestUtil.LockGrabber startGrabber(TransactionId tid, PageId pid, Permissions perm) {
 
     LockGrabber lg = new LockGrabber(tid, pid, perm);
     lg.start();
@@ -68,11 +72,13 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
   }
 
   /**
-   * Not-so-unit test to construct a deadlock situation.
-   * t1 acquires p0.read; t2 acquires p1.read; t1 attempts p1.write; t2
-   * attempts p0.write. Rinse and repeat.
+   * Not-so-unit test to construct a deadlock situation. t1 acquires p0.read; t2
+   * acquires p1.read; t1 attempts p1.write; t2 attempts p0.write. Rinse and
+   * repeat.
    */
-  @Test public void testReadWriteDeadlock() throws Exception {
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testReadWriteDeadlock() throws Exception {
     System.out.println("testReadWriteDeadlock constructing deadlock:");
 
     LockGrabber lg1Read = startGrabber(tid1, p0, Permissions.READ_ONLY);
@@ -88,11 +94,14 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
       Thread.sleep(POLL_INTERVAL);
 
       assertFalse(lg1Write.acquired() && lg2Write.acquired());
-      if (lg1Write.acquired() && !lg2Write.acquired()) break;
-      if (!lg1Write.acquired() && lg2Write.acquired()) break;
+      if (lg1Write.acquired() && !lg2Write.acquired())
+        break;
+      if (!lg1Write.acquired() && lg2Write.acquired())
+        break;
 
       if (lg1Write.getError() != null) {
-        lg1Read.stop(); lg1Write.stop();
+        lg1Read.stop();
+        lg1Write.stop();
         bp.transactionComplete(tid1);
         Thread.sleep(rand.nextInt(WAIT_INTERVAL));
 
@@ -102,7 +111,8 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
       }
 
       if (lg2Write.getError() != null) {
-        lg2Read.stop(); lg2Write.stop();
+        lg2Read.stop();
+        lg2Write.stop();
         bp.transactionComplete(tid2);
         Thread.sleep(rand.nextInt(WAIT_INTERVAL));
 
@@ -116,11 +126,12 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
   }
 
   /**
-   * Not-so-unit test to construct a deadlock situation.
-   * t1 acquires p0.write; t2 acquires p1.write; t1 attempts p1.write; t2
-   * attempts p0.write.
+   * Not-so-unit test to construct a deadlock situation. t1 acquires p0.write;
+   * t2 acquires p1.write; t1 attempts p1.write; t2 attempts p0.write.
    */
-  @Test public void testWriteWriteDeadlock() throws Exception {
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testWriteWriteDeadlock() throws Exception {
     System.out.println("testWriteWriteDeadlock constructing deadlock:");
 
     LockGrabber lg1Write0 = startGrabber(tid1, p0, Permissions.READ_WRITE);
@@ -136,11 +147,14 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
       Thread.sleep(POLL_INTERVAL);
 
       assertFalse(lg1Write1.acquired() && lg2Write0.acquired());
-      if (lg1Write1.acquired() && !lg2Write0.acquired()) break;
-      if (!lg1Write1.acquired() && lg2Write0.acquired()) break;
+      if (lg1Write1.acquired() && !lg2Write0.acquired())
+        break;
+      if (!lg1Write1.acquired() && lg2Write0.acquired())
+        break;
 
       if (lg1Write1.getError() != null) {
-        lg1Write0.stop(); lg1Write1.stop();
+        lg1Write0.stop();
+        lg1Write1.stop();
         bp.transactionComplete(tid1);
         Thread.sleep(rand.nextInt(WAIT_INTERVAL));
 
@@ -150,7 +164,8 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
       }
 
       if (lg2Write0.getError() != null) {
-        lg2Write0.stop(); lg2Write1.stop();
+        lg2Write0.stop();
+        lg2Write1.stop();
         bp.transactionComplete(tid2);
         Thread.sleep(rand.nextInt(WAIT_INTERVAL));
 
@@ -164,11 +179,13 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
   }
 
   /**
-   * Not-so-unit test to construct a deadlock situation.
-   * t1 acquires p0.read; t2 acquires p0.read; t1 attempts to upgrade to
-   * p0.write; t2 attempts to upgrade to p0.write
+   * Not-so-unit test to construct a deadlock situation. t1 acquires p0.read; t2
+   * acquires p0.read; t1 attempts to upgrade to p0.write; t2 attempts to
+   * upgrade to p0.write
    */
-  @Test public void testUpgradeWriteDeadlock() throws Exception {
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testUpgradeWriteDeadlock() throws Exception {
     System.out.println("testUpgradeWriteDeadlock constructing deadlock:");
 
     LockGrabber lg1Read = startGrabber(tid1, p0, Permissions.READ_ONLY);
@@ -184,11 +201,14 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
       Thread.sleep(POLL_INTERVAL);
 
       assertFalse(lg1Write.acquired() && lg2Write.acquired());
-      if (lg1Write.acquired() && !lg2Write.acquired()) break;
-      if (!lg1Write.acquired() && lg2Write.acquired()) break;
+      if (lg1Write.acquired() && !lg2Write.acquired())
+        break;
+      if (!lg1Write.acquired() && lg2Write.acquired())
+        break;
 
       if (lg1Write.getError() != null) {
-        lg1Read.stop(); lg1Write.stop();
+        lg1Read.stop();
+        lg1Write.stop();
         bp.transactionComplete(tid1);
         Thread.sleep(rand.nextInt(WAIT_INTERVAL));
 
@@ -198,7 +218,8 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
       }
 
       if (lg2Write.getError() != null) {
-        lg2Read.stop(); lg2Write.stop();
+        lg2Read.stop();
+        lg2Write.stop();
         bp.transactionComplete(tid2);
         Thread.sleep(rand.nextInt(WAIT_INTERVAL));
 
@@ -219,4 +240,3 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
   }
 
 }
-

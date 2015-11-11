@@ -23,53 +23,29 @@ public class IntegerAggregatorTest extends SimpleDbTestBase {
   /**
    * Initialize each unit test
    */
-  @Before public void createTupleList() throws Exception {
-    this.scan1 = TestUtil.createTupleList(width1,
-        new int[] { 1, 2,
-                    1, 4,
-                    1, 6,
-                    3, 2,
-                    3, 4,
-                    3, 6,
-                    5, 7 });
+  @Before
+  public void createTupleList() throws Exception {
+    this.scan1 = TestUtil.createTupleList(width1, new int[] { 1, 2, 1, 4, 1, 6, 3, 2, 3, 4, 3, 6,
+        5, 7 });
 
     // verify how the results progress after a few merges
-    this.sum = new int[][] {
-      { 1, 2 },
-      { 1, 6 },
-      { 1, 12 },
-      { 1, 12, 3, 2 }
-    };
+    this.sum = new int[][] { { 1, 2 }, { 1, 6 }, { 1, 12 }, { 1, 12, 3, 2 } };
 
-    this.min = new int[][] {
-      { 1, 2 },
-      { 1, 2 },
-      { 1, 2 },
-      { 1, 2, 3, 2 }
-    };
+    this.min = new int[][] { { 1, 2 }, { 1, 2 }, { 1, 2 }, { 1, 2, 3, 2 } };
 
-    this.max = new int[][] {
-      { 1, 2 },
-      { 1, 4 },
-      { 1, 6 },
-      { 1, 6, 3, 2 }
-    };
+    this.max = new int[][] { { 1, 2 }, { 1, 4 }, { 1, 6 }, { 1, 6, 3, 2 } };
 
-    this.avg = new int[][] {
-      { 1, 2 },
-      { 1, 3 },
-      { 1, 4 },
-      { 1, 4, 3, 2 }
-    };
+    this.avg = new int[][] { { 1, 2 }, { 1, 3 }, { 1, 4 }, { 1, 4, 3, 2 } };
   }
 
   /**
    * Test IntegerAggregator.mergeTupleIntoGroup() and iterator() over a sum
    */
-  @Test public void mergeSum() throws Exception {
+  @Test
+  public void mergeSum() throws Exception {
     scan1.open();
     IntegerAggregator agg = new IntegerAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.SUM);
-    
+
     for (int[] step : sum) {
       agg.mergeTupleIntoGroup(scan1.next());
       DbIterator it = agg.iterator();
@@ -81,9 +57,10 @@ public class IntegerAggregatorTest extends SimpleDbTestBase {
   /**
    * Test IntegerAggregator.mergeTupleIntoGroup() and iterator() over a min
    */
-  @Test public void mergeMin() throws Exception {
+  @Test
+  public void mergeMin() throws Exception {
     scan1.open();
-    IntegerAggregator agg = new IntegerAggregator(0,Type.INT_TYPE,  1, Aggregator.Op.MIN);
+    IntegerAggregator agg = new IntegerAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.MIN);
 
     DbIterator it;
     for (int[] step : min) {
@@ -97,7 +74,8 @@ public class IntegerAggregatorTest extends SimpleDbTestBase {
   /**
    * Test IntegerAggregator.mergeTupleIntoGroup() and iterator() over a max
    */
-  @Test public void mergeMax() throws Exception {
+  @Test
+  public void mergeMax() throws Exception {
     scan1.open();
     IntegerAggregator agg = new IntegerAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.MAX);
 
@@ -113,7 +91,8 @@ public class IntegerAggregatorTest extends SimpleDbTestBase {
   /**
    * Test IntegerAggregator.mergeTupleIntoGroup() and iterator() over an avg
    */
-  @Test public void mergeAvg() throws Exception {
+  @Test
+  public void mergeAvg() throws Exception {
     scan1.open();
     IntegerAggregator agg = new IntegerAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.AVG);
 
@@ -129,7 +108,8 @@ public class IntegerAggregatorTest extends SimpleDbTestBase {
   /**
    * Test IntegerAggregator.iterator() for DbIterator behaviour
    */
-  @Test public void testIterator() throws Exception {
+  @Test
+  public void testIterator() throws Exception {
     // first, populate the aggregator via sum over scan1
     scan1.open();
     IntegerAggregator agg = new IntegerAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.SUM);
@@ -185,4 +165,3 @@ public class IntegerAggregatorTest extends SimpleDbTestBase {
     return new JUnit4TestAdapter(IntegerAggregatorTest.class);
   }
 }
-

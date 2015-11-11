@@ -1,5 +1,8 @@
 package simpledb.systemtest;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -7,13 +10,24 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.Arrays;
 
 import org.junit.Test;
 
-import simpledb.*;
-
-import static org.junit.Assert.*;
+import simpledb.Database;
+import simpledb.DbException;
+import simpledb.DbFile;
+import simpledb.DbFileIterator;
+import simpledb.Delete;
+import simpledb.HeapFile;
+import simpledb.Insert;
+import simpledb.IntField;
+import simpledb.Query;
+import simpledb.SeqScan;
+import simpledb.Transaction;
+import simpledb.TransactionAbortedException;
+import simpledb.TransactionId;
+import simpledb.Tuple;
+import simpledb.TupleIterator;
 
 /**
  * Tests running concurrent transactions.
@@ -26,7 +40,7 @@ public class TransactionTest extends SimpleDbTestBase {
             throws DbException, TransactionAbortedException, IOException {
         // Create a table with a single integer value = 0
         HashMap<Integer, Integer> columnSpecification = new HashMap<Integer, Integer>();
-        columnSpecification.put(0, 0);
+        columnSpecification.put(new Integer(0), new Integer(0));
         DbFile table = SystemTestUtil.createRandomHeapFile(1, 1, columnSpecification, null);
 
         ModifiableCyclicBarrier latch = new ModifiableCyclicBarrier(threads);
@@ -81,6 +95,7 @@ public class TransactionTest extends SimpleDbTestBase {
             this.latch = latch;
         }
 
+        @Override
         public void run() {
             try {
                 // Try to increment the value until we manage to successfully commit
@@ -167,13 +182,13 @@ public class TransactionTest extends SimpleDbTestBase {
             reset(parties);
         }
         
-        private void reset(int parties) {
+        protected void reset(int parties) {
             nextParticipants = new AtomicInteger(0);
             awaitLatch = new CountDownLatch(parties);
             participationLatch = new CyclicBarrier(parties, new UpdateLatch(this, nextParticipants));
         }
         
-        public void await() throws InterruptedException, BrokenBarrierException {
+        public void await() throws InterruptedException {
             awaitLatch.countDown();
             awaitLatch.await();
         }
@@ -196,6 +211,7 @@ public class TransactionTest extends SimpleDbTestBase {
                 this.nextParticipants = nextParticipants;
             }
 
+            @Override
             public void run() {
                 // Reset this barrier if there are threads still running
                 int participants = nextParticipants.get();
@@ -243,7 +259,9 @@ public class TransactionTest extends SimpleDbTestBase {
         try {
             EvictionTest.findMagicTuple(f, t);
             fail("Expected scan to run out of available buffer pages");
-        } catch (DbException e) {}
+        } catch (DbException e) {
+          // Expected exception during test
+        }
         t.commit();
     }
 

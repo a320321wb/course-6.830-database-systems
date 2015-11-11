@@ -1,13 +1,15 @@
 package simpledb;
 
-import java.util.*;
+import static org.junit.Assert.assertEquals;
+
+import java.util.NoSuchElementException;
+
+import junit.framework.JUnit4TestAdapter;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import simpledb.systemtest.SimpleDbTestBase;
-import static org.junit.Assert.assertEquals;
-import junit.framework.JUnit4TestAdapter;
 
 public class StringAggregatorTest extends SimpleDbTestBase {
 
@@ -18,30 +20,22 @@ public class StringAggregatorTest extends SimpleDbTestBase {
   /**
    * Initialize each unit test
    */
-  @Before public void createTupleList() throws Exception {
-    this.scan1 = TestUtil.createTupleList(width1,
-        new Object[] { 1, "a",
-                    1, "b",
-                    1, "c",
-                    3, "d",
-                    3, "e",
-                    3, "f",
-                    5, "g" });
+  @Before
+  public void createTupleList() throws Exception {
+    this.scan1 = TestUtil.createTupleList(width1, new Object[] { new Integer(1), "a",
+        new Integer(1), "b", new Integer(1), "c", new Integer(3), "d", new Integer(3), "e",
+        new Integer(3), "f", new Integer(5), "g" });
 
     // verify how the results progress after a few merges
-    this.count = new int[][] {
-      { 1, 1 },
-      { 1, 2 },
-      { 1, 3 },
-      { 1, 3, 3, 1 }
-    };
+    this.count = new int[][] { { 1, 1 }, { 1, 2 }, { 1, 3 }, { 1, 3, 3, 1 } };
 
   }
 
   /**
    * Test String.mergeTupleIntoGroup() and iterator() over a COUNT
    */
-  @Test public void mergeCount() throws Exception {
+  @Test
+  public void mergeCount() throws Exception {
     scan1.open();
     StringAggregator agg = new StringAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.COUNT);
 
@@ -56,7 +50,8 @@ public class StringAggregatorTest extends SimpleDbTestBase {
   /**
    * Test StringAggregator.iterator() for DbIterator behaviour
    */
-  @Test public void testIterator() throws Exception {
+  @Test
+  public void testIterator() throws Exception {
     // first, populate the aggregator via sum over scan1
     scan1.open();
     StringAggregator agg = new StringAggregator(0, Type.INT_TYPE, 1, Aggregator.Op.COUNT);
@@ -71,29 +66,29 @@ public class StringAggregatorTest extends SimpleDbTestBase {
     it.open();
 
     // verify it has three elements
-    int count = 0;
+    int elementCount = 0;
     try {
       while (true) {
         it.next();
-        count++;
+        elementCount++;
       }
     } catch (NoSuchElementException e) {
       // explicitly ignored
     }
-    assertEquals(3, count);
+    assertEquals(3, elementCount);
 
     // rewind and try again
     it.rewind();
-    count = 0;
+    elementCount = 0;
     try {
       while (true) {
         it.next();
-        count++;
+        elementCount++;
       }
     } catch (NoSuchElementException e) {
       // explicitly ignored
     }
-    assertEquals(3, count);
+    assertEquals(3, elementCount);
 
     // close it and check that we don't get anything
     it.close();
@@ -112,4 +107,3 @@ public class StringAggregatorTest extends SimpleDbTestBase {
     return new JUnit4TestAdapter(StringAggregatorTest.class);
   }
 }
-

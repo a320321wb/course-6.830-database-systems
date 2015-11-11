@@ -1,86 +1,87 @@
 package simpledb;
 
-import java.util.Objects;
-
 /** Unique identifier for HeapPage objects. */
 public class HeapPageId implements PageId {
 
-    private int tableId;
-    private int pgNo;
+  private static final int MAX_PAGES_PER_TABLE = 1048573; // Prime near 2 ** 20
 
-    /**
-     * Constructor. Create a page id structure for a specific page of a
-     * specific table.
-     *
-     * @param tableId The table that is being referenced
-     * @param pgNo The page number in that table.
-     */
-    public HeapPageId(int tableId, int pgNo) {
-        this.tableId = tableId;
-        this.pgNo = pgNo;
-    }
+  private final int tableId;
+  private final int pageNumber;
 
-    /** @return the table associated with this PageId */
-    public int getTableId() {
-        return tableId;
-    }
+  /**
+   * Constructor. Create a page id structure for a specific page of a specific
+   * table.
+   * 
+   * @param tableId The table that is being referenced
+   * @param pgNo The page number in that table.
+   */
+  public HeapPageId(int tableId, int pgNo) {
+    this.tableId = tableId;
+    this.pageNumber = pgNo;
+  }
 
-    /**
-     * @return the page number in the table getTableId() associated with
-     *   this PageId
-     */
-    public int pageNumber() {
-        return pgNo;
-    }
+  /** @return the table associated with this PageId */
+  @Override
+  public int getTableId() {
+    return tableId;
+  }
 
-    /**
-     * @return a hash code for this page, represented by the concatenation of
-     *   the table number and the page number (needed if a PageId is used as a
-     *   key in a hash table in the BufferPool, for example.)
-     * @see BufferPool
-     */
-    public int hashCode() {
-        return Objects.hash(tableId, pgNo);
-    }
+  /**
+   * @return the page number in the table getTableId() associated with this
+   *         PageId
+   */
+  @Override
+  public int pageNumber() {
+    return pageNumber;
+  }
 
-    /**
-     * Compares one PageId to another.
-     *
-     * @param o The object to compare against (must be a PageId)
-     * @return true if the objects are equal (e.g., page numbers and table
-     *   ids are the same)
-     */
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-        HeapPageId that = null;
-        try {
-            that = (HeapPageId)o;
-        } catch (ClassCastException e) {
-            return false;
-        }
+  /**
+   * @return a hash code for this page, represented by the concatenation of the
+   *         table number and the page number (needed if a PageId is used as a
+   *         key in a hash table in the BufferPool, for example.)
+   * @see BufferPool
+   */
+  @Override
+  public int hashCode() {
+    return tableId * MAX_PAGES_PER_TABLE + pageNumber + 31;
+  }
 
-        if (getTableId() == that.getTableId() && pageNumber() == that.pageNumber()) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+  /**
+   * Compares one PageId to another.
+   * 
+   * @param o The object to compare against (must be a PageId)
+   * @return true if the objects are equal (e.g., page numbers and table ids are
+   *         the same)
+   */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null)
+      return false;
+    if (getClass() != o.getClass())
+      return false;
+    HeapPageId otherHeapPageId = (HeapPageId) o;
+    if (otherHeapPageId.pageNumber != this.pageNumber)
+      return false;
+    if (otherHeapPageId.tableId != this.tableId)
+      return false;
+    return true;
+  }
 
-    /**
-     *  Return a representation of this object as an array of
-     *  integers, for writing to disk.  Size of returned array must contain
-     *  number of integers that corresponds to number of args to one of the
-     *  constructors.
-     */
-    public int[] serialize() {
-        int data[] = new int[2];
+  /**
+   * Return a representation of this object as an array of integers, for writing
+   * to disk. Size of returned array must contain number of integers that
+   * corresponds to number of args to one of the constructors.
+   */
+  @Override
+  public int[] serialize() {
+    int data[] = new int[2];
 
-        data[0] = getTableId();
-        data[1] = pageNumber();
+    data[0] = getTableId();
+    data[1] = pageNumber();
 
-        return data;
-    }
+    return data;
+  }
 
 }

@@ -1,16 +1,15 @@
 package simpledb;
 
-import org.junit.Before;
-import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import junit.framework.JUnit4TestAdapter;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class LockingTest extends TestUtil.CreateHeapFile {
   private PageId p0, p1, p2;
-  private TransactionId tid1, tid2;
+  private TransactionId transactionId1, transactionId2;
 
   /** Time to wait before checking the state of lock contention, in ms */
   private static final int TIMEOUT = 100;
@@ -21,6 +20,7 @@ public class LockingTest extends TestUtil.CreateHeapFile {
   /**
    * Set up initial resources for each unit test.
    */
+  @Override
   @Before public void setUp() throws Exception {
     super.setUp();
 
@@ -40,8 +40,8 @@ public class LockingTest extends TestUtil.CreateHeapFile {
     this.p0 = new HeapPageId(empty.getId(), 0);
     this.p1 = new HeapPageId(empty.getId(), 1);
     this.p2 = new HeapPageId(empty.getId(), 2);
-    this.tid1 = new TransactionId();
-    this.tid2 = new TransactionId();
+    this.transactionId1 = new TransactionId();
+    this.transactionId2 = new TransactionId();
 
     // forget about locks associated to tid, so they don't conflict with
     // test cases
@@ -69,7 +69,10 @@ public class LockingTest extends TestUtil.CreateHeapFile {
       TransactionId tid2, PageId pid2, Permissions perm2,
       boolean expected) throws Exception {
 
+    System.out.println(tid1 + " is getting page " + pid1 + " with permissions " + perm1);
     bp.getPage(tid1, pid1, perm1);
+    System.out.println(tid1 + " got " + pid1 + " with permissions " + perm1);
+    System.out.println(tid2 + " is getting page " + pid2 + " with permissions " + perm2);
     grabLock(tid2, pid2, perm2, expected);
   }
 
@@ -83,6 +86,7 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * @param expected true if we expect the acquisition to succeed;
    *   false otherwise
    */
+  @SuppressWarnings("deprecation")
   public void grabLock(TransactionId tid, PageId pid, Permissions perm,
       boolean expected) throws Exception {
 
@@ -91,7 +95,7 @@ public class LockingTest extends TestUtil.CreateHeapFile {
 
     // if we don't have the lock after TIMEOUT, we assume blocking.
     Thread.sleep(TIMEOUT);
-    assertEquals(expected, t.acquired());
+    assertEquals(new Boolean(expected), new Boolean(t.acquired()));
     assertNull(t.getError());
 
     // TODO(ghuo): yes, stop() is evil, but this is unit test cleanup
@@ -103,8 +107,8 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * Acquires two read locks on the same page.
    */
   @Test public void acquireReadLocksOnSamePage() throws Exception {
-    metaLockTester(tid1, p0, Permissions.READ_ONLY,
-                   tid2, p0, Permissions.READ_ONLY, true);
+    metaLockTester(transactionId1, p0, Permissions.READ_ONLY,
+                   transactionId2, p0, Permissions.READ_ONLY, true);
   }
 
   /**
@@ -112,8 +116,8 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * Acquires a read lock and a write lock on the same page, in that order.
    */
   @Test public void acquireReadWriteLocksOnSamePage() throws Exception {
-    metaLockTester(tid1, p0, Permissions.READ_ONLY,
-                   tid2, p0, Permissions.READ_WRITE, false);
+    metaLockTester(transactionId1, p0, Permissions.READ_ONLY,
+                   transactionId2, p0, Permissions.READ_WRITE, false);
   }
 
   /**
@@ -121,8 +125,8 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * Acquires a write lock and a read lock on the same page, in that order.
    */
   @Test public void acquireWriteReadLocksOnSamePage() throws Exception {
-    metaLockTester(tid1, p0, Permissions.READ_WRITE,
-                   tid2, p0, Permissions.READ_ONLY, false);
+    metaLockTester(transactionId1, p0, Permissions.READ_WRITE,
+                   transactionId2, p0, Permissions.READ_ONLY, false);
   }
 
   /**
@@ -130,8 +134,8 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * Acquires a read lock and a write lock on different pages.
    */
   @Test public void acquireReadWriteLocksOnTwoPages() throws Exception {
-    metaLockTester(tid1, p0, Permissions.READ_ONLY,
-                   tid2, p1, Permissions.READ_WRITE, true);
+    metaLockTester(transactionId1, p0, Permissions.READ_ONLY,
+                   transactionId2, p1, Permissions.READ_WRITE, true);
   }
 
   /**
@@ -139,8 +143,8 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * Acquires write locks on different pages.
    */
   @Test public void acquireWriteLocksOnTwoPages() throws Exception {
-    metaLockTester(tid1, p0, Permissions.READ_WRITE,
-                   tid2, p1, Permissions.READ_WRITE, true);
+    metaLockTester(transactionId1, p0, Permissions.READ_WRITE,
+                   transactionId2, p1, Permissions.READ_WRITE, true);
   }
 
   /**
@@ -148,8 +152,8 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * Acquires read locks on different pages.
    */
   @Test public void acquireReadLocksOnTwoPages() throws Exception {
-    metaLockTester(tid1, p0, Permissions.READ_ONLY,
-                   tid2, p1, Permissions.READ_ONLY, true);
+    metaLockTester(transactionId1, p0, Permissions.READ_ONLY,
+                   transactionId2, p1, Permissions.READ_ONLY, true);
   }
 
   /**
@@ -157,10 +161,10 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * Attempt lock upgrade.
    */
   @Test public void lockUpgrade() throws Exception {
-    metaLockTester(tid1, p0, Permissions.READ_ONLY,
-                   tid1, p0, Permissions.READ_WRITE, true);
-    metaLockTester(tid2, p1, Permissions.READ_ONLY,
-                   tid2, p1, Permissions.READ_WRITE, true);
+    metaLockTester(transactionId1, p0, Permissions.READ_ONLY,
+                   transactionId1, p0, Permissions.READ_WRITE, true);
+    metaLockTester(transactionId2, p1, Permissions.READ_ONLY,
+                   transactionId2, p1, Permissions.READ_WRITE, true);
   }
 
   /**
@@ -169,8 +173,8 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * already has a write lock.
    */
   @Test public void acquireWriteAndReadLocks() throws Exception {
-    metaLockTester(tid1, p0, Permissions.READ_WRITE,
-                   tid1, p0, Permissions.READ_ONLY, true);
+    metaLockTester(transactionId1, p0, Permissions.READ_WRITE,
+                   transactionId1, p0, Permissions.READ_ONLY, true);
   }
 
   /**
@@ -179,13 +183,13 @@ public class LockingTest extends TestUtil.CreateHeapFile {
    * Acquires read locks on different pages.
    */
   @Test public void acquireThenRelease() throws Exception {
-    bp.getPage(tid1, p0, Permissions.READ_WRITE);
-    bp.releasePage(tid1, p0);
-    bp.getPage(tid2, p0, Permissions.READ_WRITE);
+    bp.getPage(transactionId1, p0, Permissions.READ_WRITE);
+    bp.releasePage(transactionId1, p0);
+    bp.getPage(transactionId2, p0, Permissions.READ_WRITE);
 
-    bp.getPage(tid2, p1, Permissions.READ_WRITE);
-    bp.releasePage(tid2, p1);
-    bp.getPage(tid1, p1, Permissions.READ_WRITE);
+    bp.getPage(transactionId2, p1, Permissions.READ_WRITE);
+    bp.releasePage(transactionId2, p1);
+    bp.getPage(transactionId1, p1, Permissions.READ_WRITE);
   }
 
   /**
