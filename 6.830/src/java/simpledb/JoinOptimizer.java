@@ -203,11 +203,30 @@ public class JoinOptimizer {
    */
   public Vector<LogicalJoinNode> orderJoins(HashMap<String, TableStats> stats,
       HashMap<String, Double> filterSelectivities, boolean explain) throws ParsingException {
-    // Not necessary for labs 1--3
-
-    // some code goes here
-    // Replace the following
-    return joins;
+    int numJoins = joins.size();
+    PlanCache pc = new PlanCache();
+    for (int i = 1; i <= numJoins; ++i) {
+      Set<Set<LogicalJoinNode>> subsets = enumerateSubsets(joins, i);
+      for (Set<LogicalJoinNode> s : subsets) {
+        double bestCostSoFar = Double.MAX_VALUE;
+        CostCard bestPlanSoFar = null;
+        for (LogicalJoinNode p : s) {
+          CostCard subplan = computeCostAndCardOfSubplan(stats, filterSelectivities, p, s, bestCostSoFar, pc);
+          if (subplan != null && subplan.cost < bestCostSoFar) {
+            bestCostSoFar = subplan.cost;
+            bestPlanSoFar = subplan;
+          }
+        }
+        if (bestPlanSoFar != null) {
+          pc.addPlan(s, bestCostSoFar, bestPlanSoFar.card, bestPlanSoFar.plan);
+        }
+      }
+    }
+    Vector<LogicalJoinNode> ret = pc.getOrder(new HashSet<LogicalJoinNode>(joins));
+    if (explain) {
+      printJoins(ret, pc, stats, filterSelectivities);
+    }
+    return ret;
   }
 
   // ===================== Private Methods =================================
