@@ -1,5 +1,6 @@
 package simpledb;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -65,6 +66,15 @@ public class TableStats {
    */
   static final int NUM_HIST_BINS = 100;
 
+  private final int tableId;
+  private final int ioCostPerPage;
+  private IntHistogram[] histograms;
+  private int[] histogramMins;
+  private int[] histogramMaxs;
+  private long numTuples;
+  private final ArrayList<Integer> intFieldIndices;
+
+
   /**
    * Create a new TableStats object, that keeps track of statistics on each
    * column of a table
@@ -81,7 +91,56 @@ public class TableStats {
     // You should try to do this reasonably efficiently, but you don't
     // necessarily have to (for example) do everything
     // in a single scan of the table.
-    // some code goes here
+    this.tableId = tableid;
+    this.ioCostPerPage = ioCostPerPage;
+    this.intFieldIndices = new ArrayList<Integer>();
+    try {
+      init();
+    } catch (DbException e) {
+      System.err.println("Exception while initializing TableStats.");
+    } catch (TransactionAbortedException e) {
+      System.err.println("Transaction aborted while initializing TableStats.");
+    }
+  }
+
+  private void init() throws DbException, TransactionAbortedException{
+    TupleDesc tupleDesc = Database.getCatalog().getTupleDesc(tableId);
+    int numFields = tupleDesc.numFields();
+    histograms = new IntHistogram[numFields];
+    histogramMins = new int[numFields];
+    histogramMaxs = new int[numFields];
+    for (int i = 0; i < numFields; ++i) {
+      if (tupleDesc.getFieldType(i) == Type.INT_TYPE) {
+        intFieldIndices.add(i);
+        histogramMins[i] = Integer.MAX_VALUE;
+        histogramMaxs[i] = Integer.MIN_VALUE;
+      }
+    }
+
+    DbFileIterator dbFileIterator = Database.getCatalog().getDatabaseFile(tableId).iterator(new TransactionId());
+    dbFileIterator.open();
+    numTuples = 0;
+    while (dbFileIterator.hasNext()) {
+      Tuple tuple = dbFileIterator.next();
+      numTuples++;
+      for (int index : intFieldIndices) {
+        int value = ((IntField)tuple.getField(index)).getValue();
+        histogramMins[index] = Math.min(histogramMins[index], value);
+        histogramMaxs[index] = Math.max(histogramMaxs[index], value);
+      }
+    }
+    for (int index : intFieldIndices) {
+      histograms[index] = new IntHistogram(NUM_HIST_BINS, histogramMins[index], histogramMaxs[index]);
+    }
+    dbFileIterator.rewind();
+    while (dbFileIterator.hasNext()) {
+      Tuple tuple = dbFileIterator.next();
+      for (int index : intFieldIndices) {
+        int value = ((IntField)tuple.getField(index)).getValue();
+        histograms[index].addValue(value);
+      }
+    }
+    dbFileIterator.close();
   }
 
   /**
@@ -124,7 +183,6 @@ public class TableStats {
    *          estimate this value from the histograms.
    * */
   public double avgSelectivity(int field, Predicate.Op op) {
-    // some code goes here
     return 1.0;
   }
 

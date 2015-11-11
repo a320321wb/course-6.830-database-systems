@@ -154,7 +154,6 @@ public class IntHistogram {
    *         efficient optimization
    * */
   public double avgSelectivity() {
-    // some code goes here
     return 1.0;
   }
 
