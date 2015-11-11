@@ -116,10 +116,10 @@ public class IntHistogram {
       case LESS_THAN_OR_EQ:
       case EQUALS:
       case GREATER_THAN_OR_EQ:
-        ret = bucketCounts[index] / getWidth(index);
+        ret = (double)bucketCounts[index] / getWidth(index);
         break;
       case NOT_EQUALS:
-        return 1.0 - bucketCounts[index] / getWidth(index) / numValues;
+        return 1.0 - (double)bucketCounts[index] / getWidth(index) / numValues;
       case LIKE:
         return 1.0;
       default:
@@ -131,11 +131,11 @@ public class IntHistogram {
         for (int i = 0; i < index; ++i) {
           ret += bucketCounts[i];
         }
-        ret += (v - bucketMins[index]) / getWidth(index) * bucketCounts[index];
+        ret += (double)(v - bucketMins[index]) / getWidth(index) * bucketCounts[index];
         break;
       case GREATER_THAN:
       case GREATER_THAN_OR_EQ:
-        ret += (bucketMaxs[index] - v) / getWidth(index) * bucketCounts[index];
+        ret += (double)(bucketMaxs[index] - v) / getWidth(index) * bucketCounts[index];
         for (int i = index + 1; i < numBuckets; ++i) {
           ret += bucketCounts[i];
         }

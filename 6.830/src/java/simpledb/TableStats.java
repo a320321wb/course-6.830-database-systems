@@ -68,10 +68,11 @@ public class TableStats {
 
   private final int tableId;
   private final int ioCostPerPage;
+  private final TupleDesc tupleDesc;
   private IntHistogram[] histograms;
   private int[] histogramMins;
   private int[] histogramMaxs;
-  private long numTuples;
+  private int numTuples;
   private final ArrayList<Integer> intFieldIndices;
 
 
@@ -94,6 +95,7 @@ public class TableStats {
     this.tableId = tableid;
     this.ioCostPerPage = ioCostPerPage;
     this.intFieldIndices = new ArrayList<Integer>();
+    this.tupleDesc = Database.getCatalog().getTupleDesc(tableId);
     try {
       init();
     } catch (DbException e) {
@@ -104,7 +106,6 @@ public class TableStats {
   }
 
   private void init() throws DbException, TransactionAbortedException{
-    TupleDesc tupleDesc = Database.getCatalog().getTupleDesc(tableId);
     int numFields = tupleDesc.numFields();
     histograms = new IntHistogram[numFields];
     histogramMins = new int[numFields];
@@ -156,8 +157,9 @@ public class TableStats {
    * @return The estimated cost of scanning the table.
    */
   public double estimateScanCost() {
-    // some code goes here
-    return 0;
+    int tuplesPerPage = BufferPool.getPageSize() / tupleDesc.getSize();
+    int numPages = (numTuples + tuplesPerPage - 1) / tuplesPerPage;
+    return ioCostPerPage * numPages;
   }
 
   /**
@@ -169,8 +171,7 @@ public class TableStats {
    *         selectivityFactor
    */
   public int estimateTableCardinality(double selectivityFactor) {
-    // some code goes here
-    return 0;
+    return (int)(numTuples * selectivityFactor);
   }
 
   /**
@@ -197,7 +198,10 @@ public class TableStats {
    *         predicate
    */
   public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
-    // some code goes here
+    if (constant.getType() == Type.INT_TYPE) {
+      int value = ((IntField)constant).getValue();
+      return histograms[field].estimateSelectivity(op, value);
+    }
     return 1.0;
   }
 
@@ -205,8 +209,7 @@ public class TableStats {
    * return the total number of tuples in this table
    * */
   public int totalTuples() {
-    // some code goes here
-    return 0;
+    return numTuples;
   }
 
 }
