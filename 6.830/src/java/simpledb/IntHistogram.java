@@ -6,6 +6,17 @@ package simpledb;
  */
 public class IntHistogram {
 
+  private final int numBuckets;
+  private final int minValue;
+  private final int maxValue;
+  private final int width;
+  private long[] bucketCounts;
+  private final int[] bucketMins;
+  private final int[] bucketMaxs;
+  private int numValues;
+
+
+
   /**
    * Create a new IntHistogram.
    * 
@@ -27,7 +38,30 @@ public class IntHistogram {
    *          for histogramming
    */
   public IntHistogram(int buckets, int min, int max) {
-    // some code goes here
+    numBuckets = buckets;
+    minValue = min;
+    maxValue = max;
+    width = (maxValue - minValue) / numBuckets + 1;
+    bucketCounts = new long [numBuckets];
+    bucketMins = new int [numBuckets];
+    bucketMaxs = new int [numBuckets];
+    for (int i = 0; i < numBuckets; ++i) {
+      bucketMins[i] = minValue + i * width;
+      bucketMaxs[i] = bucketMins[i] + width - 1;
+    }
+    bucketMaxs[numBuckets - 1] = maxValue;
+    numValues = 0;
+  }
+
+  private int getIndex(int v) {
+    if (v < minValue || v > maxValue) {
+      return -1;
+    }
+    return (v - minValue) / width;
+  }
+
+  private int getWidth(int index) {
+    return bucketMaxs[index] - bucketMins[index] + 1;
   }
 
   /**
@@ -36,7 +70,12 @@ public class IntHistogram {
    * @param v Value to add to the histogram
    */
   public void addValue(int v) {
-    // some code goes here
+    int index = getIndex(v);
+    if (index == -1) {
+      return;
+    }
+    bucketCounts[index]++;
+    numValues++;
   }
 
   /**
@@ -51,9 +90,60 @@ public class IntHistogram {
    * @return Predicted selectivity of this particular operator and value
    */
   public double estimateSelectivity(Predicate.Op op, int v) {
-
-    // some code goes here
-    return -1.0;
+    if (v < minValue) {
+      switch (op) {
+        case GREATER_THAN:
+        case GREATER_THAN_OR_EQ:
+        case NOT_EQUALS:
+          return 1.0;
+        default:
+          return 0.0;
+      }
+    }
+    if (v > maxValue) {
+      switch (op) {
+        case LESS_THAN:
+        case LESS_THAN_OR_EQ:
+        case NOT_EQUALS:
+          return 1.0;
+        default:
+          return 0.0;
+      }
+    }
+    int index = getIndex(v);
+    double ret = 0;
+    switch (op) {
+      case LESS_THAN_OR_EQ:
+      case EQUALS:
+      case GREATER_THAN_OR_EQ:
+        ret = bucketCounts[index] / getWidth(index);
+        break;
+      case NOT_EQUALS:
+        return 1.0 - bucketCounts[index] / getWidth(index) / numValues;
+      case LIKE:
+        return 1.0;
+      default:
+        break;
+    }
+    switch (op) {
+      case LESS_THAN:
+      case LESS_THAN_OR_EQ:
+        for (int i = 0; i < index; ++i) {
+          ret += bucketCounts[i];
+        }
+        ret += (v - bucketMins[index]) / getWidth(index) * bucketCounts[index];
+        break;
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQ:
+        ret += (bucketMaxs[index] - v) / getWidth(index) * bucketCounts[index];
+        for (int i = index + 1; i < numBuckets; ++i) {
+          ret += bucketCounts[i];
+        }
+        break;
+      default:
+        break;
+    }
+    return ret / numValues;
   }
 
   /**
@@ -73,7 +163,6 @@ public class IntHistogram {
    */
   @Override
   public String toString() {
-    // some code goes here
     return null;
   }
 }
