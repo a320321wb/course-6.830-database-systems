@@ -7,11 +7,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
 
 /**
  LogFile implements the recovery subsystem of SimpleDb.  This class is
@@ -544,7 +540,52 @@ public class LogFile {
     synchronized (Database.getBufferPool()) {
       synchronized (this) {
         recoveryUndecided = false;
-        // some code goes here
+        raf.seek(0);
+        Set<Long> activeTransactionIds = new HashSet<Long>();
+        long checkPointOffset = raf.readLong();
+        if (checkPointOffset >= 0) {
+          raf.seek(checkPointOffset);
+          raf.readInt();
+          raf.readLong();
+          int numActiveTransactions = raf.readInt();
+          for (int i = 0; i < numActiveTransactions; ++i) {
+            long activeTransactionId = raf.readLong();
+            activeTransactionIds.add(activeTransactionId);
+            tidToFirstLogRecord.put(activeTransactionId, raf.readLong());
+          }
+          raf.readLong();
+        }
+        while (raf.getFilePointer() < raf.length()) {
+          long offset = raf.getFilePointer();
+          int recordType = raf.readInt();
+          long recordTransactionId = raf.readLong();
+          switch (recordType) {
+            case ABORT_RECORD:
+              rollback(recordTransactionId);
+              activeTransactionIds.remove(recordTransactionId);
+              break;
+            case COMMIT_RECORD:
+              activeTransactionIds.remove(recordTransactionId);
+              break;
+            case BEGIN_RECORD:
+              activeTransactionIds.add(recordTransactionId);
+              tidToFirstLogRecord.put(recordTransactionId, offset);
+              break;
+            case UPDATE_RECORD:
+              readPageData(raf);
+              Page after = readPageData(raf);
+              Database.getCatalog().getDatabaseFile(after.getId().getTableId()).writePage(after);
+              Database.getBufferPool().discardPage(after.getId());
+              break;
+            default:
+              break;
+          }
+          raf.readLong();
+        }
+        currentOffset = raf.getFilePointer();
+        for (long activeTransactionId : activeTransactionIds) {
+          rollback(activeTransactionId);
+        }
       }
     }
   }
