@@ -1,5 +1,6 @@
 package simpledb;
 
+import javax.xml.crypto.Data;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.HashSet;
 
 /**
  LogFile implements the recovery subsystem of SimpleDb.  This class is
@@ -463,6 +465,45 @@ public class LogFile {
     // print();
   }
 
+  private void rollback(long tid) throws NoSuchElementException, IOException {
+    Long firstLogRecord = tidToFirstLogRecord.get(tid);
+    if (firstLogRecord == null) {
+      return;
+    }
+    Set<PageId> resetPageIds = new HashSet<PageId>();
+    long previousPointer = raf.getFilePointer();
+    raf.seek(firstLogRecord);
+    long endPointer = currentOffset == -1?raf.length():currentOffset;
+    while (raf.getFilePointer() < endPointer) {
+      int recordType = raf.readInt();
+      long recordTransactionId = raf.readLong();
+      switch (recordType) {
+        case UPDATE_RECORD:
+          Page before = readPageData(raf);
+          readPageData(raf);
+          if (tid == recordTransactionId) {
+            if (!resetPageIds.contains(before.getId())) {
+              resetPageIds.add(before.getId());
+              Database.getCatalog().getDatabaseFile(before.getId().getTableId()).writePage(before);
+              Database.getBufferPool().discardPage(before.getId());
+            }
+          }
+          break;
+        case CHECKPOINT_RECORD:
+          int numActiveTransactions = raf.readInt();
+          for (int i = 0; i < numActiveTransactions; ++i) {
+            raf.readLong();
+            raf.readLong();
+          }
+          break;
+        default:
+          break;
+      }
+      raf.readLong();
+    }
+    raf.seek(previousPointer);
+  }
+
   /**
    * Rollback the specified transaction, setting the state of any of pages it
    * updated to their pre-updated state. To preserve transaction semantics, this
@@ -475,7 +516,7 @@ public class LogFile {
     synchronized (Database.getBufferPool()) {
       synchronized (this) {
         preAppend();
-        // some code goes here
+        rollback(tid.getId());
       }
     }
   }
